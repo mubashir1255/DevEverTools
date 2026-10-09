@@ -127,6 +127,7 @@ const tools: Tool[] = [
     description: "Generate dummy paragraphs, JSON arrays, and placeholder emails.",
     category: "Generators",
     icon: Type,
+    slug: "dummy-data-generator",
   },
 
   // --- Security & Web Utilities ---
