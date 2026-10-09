@@ -29,7 +29,7 @@ function generateMarkdownTable(
   rows: string[][],
   alignments: Alignment[]
 ): string {
-  const colCount = headers.length;
+  
   const colWidths = headers.map((h, i) => {
     let max = h.length;
     for (const r of rows) {
