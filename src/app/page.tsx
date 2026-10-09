@@ -1,69 +1,364 @@
-import Image from "next/image";
+"use client";
+
+import { useMemo, useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Binary,
+  Braces,
+  Clock3,
+  Code2,
+  FileCode,
+  FileJson,
+  Fingerprint,
+  Hash,
+  KeyRound,
+  Layers,
+  Link2,
+  Minimize2,
+  Palette,
+  Regex,
+  Search,
+  ShieldCheck,
+  Split,
+  Terminal,
+  Type,
+  Check,
+  X,
+} from "lucide-react";
+
+type Tool = {
+  name: string;
+  description: string;
+  category: string;
+  icon: typeof Braces;
+  slug?: string;
+};
+
+const tools: Tool[] = [
+  // --- Formatters & Converters ---
+  {
+    name: "JSON Formatter",
+    description: "Format, validate, and beautify JSON data.",
+    category: "Formatters",
+    icon: Braces,
+    slug: "json-formatter",
+  },
+  {
+    name: "JSON to TypeScript",
+    description: "Convert JSON objects into clean TypeScript interfaces.",
+    category: "Formatters",
+    icon: FileJson,
+  },
+  {
+    name: "SQL Formatter",
+    description: "Beautify, indent, and format SQL database queries.",
+    category: "Formatters",
+    icon: FileCode,
+  },
+  {
+    name: "SVG to CSS / JSX",
+    description: "Convert raw SVG markup into CSS backgrounds or React components.",
+    category: "Converters",
+    icon: Code2,
+  },
+  {
+    name: "Timestamp Converter",
+    description: "Convert Unix epoch timestamps to UTC and human-readable dates.",
+    category: "Converters",
+    icon: Clock3,
+  },
+  {
+    name: "CSS Unit Converter",
+    description: "Convert px to rem, em, vh, and clamp expressions.",
+    category: "Converters",
+    icon: Split,
+  },
+
+  // --- Encoders & Generators ---
+  {
+    name: "Base64 Encoder",
+    description: "Encode and decode text, tokens, or images to Base64 strings.",
+    category: "Encoders",
+    icon: Binary,
+  },
+  {
+    name: "URL Encoder",
+    description: "Safely encode or decode special characters in URI query strings.",
+    category: "Encoders",
+    icon: Link2,
+  },
+  {
+    name: "HTML Entity Encoder",
+    description: "Convert special characters to their safe HTML entity representations.",
+    category: "Encoders",
+    icon: Terminal,
+  },
+  {
+    name: "UUID Generator",
+    description: "Generate cryptographically secure v4 and timestamped v7 UUIDs.",
+    category: "Generators",
+    icon: Fingerprint,
+  },
+  {
+    name: "Password & Token Generator",
+    description: "Create customizable, cryptographically strong random secrets.",
+    category: "Generators",
+    icon: KeyRound,
+  },
+  {
+    name: "Dummy Data / Lorem Generator",
+    description: "Generate dummy paragraphs, JSON arrays, and placeholder emails.",
+    category: "Generators",
+    icon: Type,
+  },
+
+  // --- Security & Web Utilities ---
+  {
+    name: "JWT Decoder",
+    description: "Inspect claims, issued-at, and expiration in token payloads locally.",
+    category: "Security",
+    icon: ShieldCheck,
+  },
+  {
+    name: "Hash Generator",
+    description: "Generate SHA-256, SHA-512, and MD5 hashes using Web Crypto.",
+    category: "Security",
+    icon: Hash,
+  },
+  {
+    name: "Chmod Permissions Calculator",
+    description: "Visual Linux/Unix numeric and symbolic file permission builder.",
+    category: "DevOps",
+    icon: Layers,
+  },
+  {
+    name: "Regex Tester",
+    description: "Test regular expressions with real-time match groups and flags.",
+    category: "DevOps",
+    icon: Regex,
+  },
+
+  // --- Design & Layout ---
+  {
+    name: "Color Palette",
+    description: "Explore color scales, tweak contrast, and copy hex/rgb/hsl values.",
+    category: "Design",
+    icon: Palette,
+  },
+  {
+    name: "Minifier",
+    description: "Strip whitespace and comments from JSON, CSS, and HTML strings.",
+    category: "Formatters",
+    icon: Minimize2,
+  },
+];
+
+const categories = [
+  "All",
+  "Formatters",
+  "Encoders",
+  "Generators",
+  "Converters",
+  "Security",
+  "DevOps",
+  "Design",
+];
 
 export default function Home() {
+  const router = useRouter();
+  const [query, setQuery] = useState("");
+  const [category, setCategory] = useState("All");
+  const [notice, setNotice] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Global '/' hotkey to focus search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.key === "/" &&
+        document.activeElement?.tagName !== "INPUT" &&
+        document.activeElement?.tagName !== "TEXTAREA"
+      ) {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  const filteredTools = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+
+    return tools.filter((tool) => {
+      const matchesQuery =
+        tool.name.toLowerCase().includes(normalizedQuery) ||
+        tool.description.toLowerCase().includes(normalizedQuery) ||
+        tool.category.toLowerCase().includes(normalizedQuery);
+
+      const matchesCategory =
+        category === "All" || tool.category === category;
+
+      return matchesQuery && matchesCategory;
+    });
+  }, [query, category]);
+
+  function handleToolClick(tool: Tool) {
+    if (tool.slug) {
+      router.push(`/tools/${tool.slug}`);
+    } else {
+      setNotice(`${tool.name} module is queued for the next milestone.`);
+      window.setTimeout(() => setNotice(""), 3000);
+    }
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
+    <div className="min-h-screen bg-black text-zinc-100 flex flex-col justify-between py-12 px-6">
+      <div className="w-full max-w-5xl mx-auto flex flex-col items-center">
+        {/* Header */}
+        <header className="text-center mb-8 flex flex-col items-center w-full">
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white mb-2">
+            Dev Vault
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="text-sm text-zinc-400 mb-1">
+            Free browser tools for developers and designers
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
+          <p className="text-xs text-zinc-500 mb-6">
+            No signup. No tracking. Pure client-side execution.
+          </p>
+
+          {/* Centered Search */}
+          <div className="relative w-full max-w-lg mb-5">
+            <Search
+              size={16}
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none"
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            <input
+              ref={searchInputRef}
+              type="search"
+              placeholder={`Search ${tools.length} tools... (/ to focus)`}
+              className="w-full bg-[#0a0b0e] border border-zinc-800 text-zinc-200 text-xs pl-10 pr-4 py-2.5 outline-none focus:border-blue-600 transition-colors"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  searchInputRef.current?.blur();
+                }
+              }}
+            />
+          </div>
+
+          {/* Filter Pills */}
+          <div className="flex flex-wrap justify-center gap-2 max-w-2xl">
+            {categories.map((cat) => {
+              const count =
+                cat === "All"
+                  ? tools.length
+                  : tools.filter((t) => t.category === cat).length;
+              const isActive = category === cat;
+
+              return (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setCategory(cat)}
+                  className={`px-3 py-1 text-xs border transition-colors ${
+                    isActive
+                      ? "bg-blue-600 border-blue-600 text-white"
+                      : "bg-[#0d0f14] border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700"
+                  }`}
+                >
+                  {cat} ({count})
+                </button>
+              );
+            })}
+          </div>
+        </header>
+
+        {/* Content Section */}
+        <main className="w-full">
+          <div className="text-xs font-semibold text-blue-400 mb-4 tracking-wide uppercase">
+            {category === "All" ? "All Tools" : category}
+          </div>
+
+          {filteredTools.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {filteredTools.map((tool) => {
+                const Icon = tool.icon;
+
+                return (
+                  <article
+                    key={tool.name}
+                    onClick={() => handleToolClick(tool)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleToolClick(tool);
+                      }
+                    }}
+                    className="bg-[#0a0b0e] border border-zinc-800/80 p-5 flex flex-col justify-between hover:border-blue-600 hover:bg-[#0e1015] cursor-pointer outline-none transition-all group min-h-[140px]"
+                  >
+                    <div>
+                      <div className="text-zinc-300 mb-3 group-hover:text-blue-400 transition-colors">
+                        <Icon size={22} strokeWidth={1.75} />
+                      </div>
+                      <h2 className="text-sm font-semibold text-zinc-100 mb-1">
+                        {tool.name}
+                      </h2>
+                      <p className="text-xs text-zinc-400 leading-relaxed">
+                        {tool.description}
+                      </p>
+                    </div>
+
+                    <div className="text-[10px] text-zinc-600 uppercase tracking-wider mt-4">
+                      {tool.category}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="border border-dashed border-zinc-800 p-12 text-center text-zinc-400">
+              <p className="text-xs mb-3">
+                No tools found matching &quot;{query}&quot;
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setQuery("");
+                  setCategory("All");
+                }}
+                className="px-3 py-1.5 bg-zinc-900 border border-zinc-700 text-xs text-zinc-200 hover:bg-zinc-800"
+              >
+                Reset filters
+              </button>
+            </div>
+          )}
+        </main>
+      </div>
+
+      {/* Footer */}
+      <footer className="w-full text-center text-xs text-zinc-600 mt-12 pt-6 border-t border-zinc-900">
+        DevVault · Local client-side tools
+      </footer>
+
+      {/* Toast Notification */}
+      {notice && (
+        <div className="fixed bottom-6 right-6 bg-[#0e1015] border border-blue-600 px-4 py-2.5 flex items-center gap-3 text-xs shadow-xl text-zinc-200 z-50">
+          <Check size={14} className="text-blue-400" />
+          <span>{notice}</span>
+          <button
+            type="button"
+            className="text-zinc-500 hover:text-zinc-300 ml-2"
+            onClick={() => setNotice("")}
           >
-            Documentation
-          </a>
+            <X size={14} />
+          </button>
         </div>
-      </main>
+      )}
     </div>
   );
 }
