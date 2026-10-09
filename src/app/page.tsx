@@ -20,6 +20,7 @@ import {
   Layers,
   Link2,
   Terminal,
+  Container,
   Minimize2,
   Palette,
   Regex,
@@ -221,6 +222,13 @@ const tools: Tool[] = [
     category: "DevOps",
     icon: Keyboard,
     slug: "keycode-inspector",
+  },
+  {
+    name: "Dockerfile Builder",
+    description: "Generate multi-stage, security-hardened Dockerfiles and .dockerignore files.",
+    category: "DevOps",
+    icon: Container,
+    slug: "dockerfile-builder",
   },
 
   // --- Design & Layout ---
