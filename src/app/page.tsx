@@ -80,6 +80,7 @@ const tools: Tool[] = [
     description: "Encode and decode text, tokens, or images to Base64 strings.",
     category: "Encoders",
     icon: Binary,
+    slug: "base64-encoder",
   },
   {
     name: "URL Encoder",
