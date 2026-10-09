@@ -48,6 +48,7 @@ const tools: Tool[] = [
     description: "Convert JSON objects into clean TypeScript interfaces.",
     category: "Formatters",
     icon: FileJson,
+    slug: "json-to-typescript",
   },
   {
     name: "SQL Formatter",
