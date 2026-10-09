@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Logo from "@/components/Logo";
 import { useRouter } from "next/navigation";
 import {
   Binary,
@@ -9,7 +10,7 @@ import {
   Code2,
   FileCode,
   FileJson,
-  TableIcon,
+  Table as TableIcon,
   FileText,
   Fingerprint,
   Hash,
@@ -300,7 +301,6 @@ const tools: Tool[] = [
     icon: Layers,
     slug: "box-shadow-generator",
   },
-  
 ];
 
 const categories = [
@@ -350,9 +350,14 @@ export default function Home() {
       <div className="w-full max-w-5xl mx-auto flex flex-col items-center">
         {/* Header */}
         <header className="text-center mb-8 flex flex-col items-center w-full">
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white mb-2">
-            DevEverTools
-          </h1>
+          {/* Logo Brand Header */}
+          <div className="flex items-center justify-between w-full max-w-2xl mb-6 pb-4 border-b border-zinc-900">
+            <Logo size={32} />
+            <span className="text-[11px] font-mono text-zinc-500 border border-zinc-800 bg-[#0a0b0e] px-2.5 py-1">
+              v1.0.0 · 35 Tools
+            </span>
+          </div>
+
           <p className="text-sm text-zinc-400 mb-1">
             Free browser tools for developers and designers
           </p>
