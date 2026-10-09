@@ -136,6 +136,7 @@ const tools: Tool[] = [
     description: "Visual Linux/Unix numeric and symbolic file permission builder.",
     category: "DevOps",
     icon: Layers,
+    slug: "chmod-calculator",
   },
   {
     name: "Regex Tester",
