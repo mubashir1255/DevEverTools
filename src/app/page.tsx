@@ -21,6 +21,7 @@ import {
   Search,
   ShieldCheck,
   Sliders,
+  Split,
   Type,
   Check,
   X,
@@ -158,6 +159,13 @@ const tools: Tool[] = [
     category: "DevOps",
     icon: Regex,
     slug: "regex-tester",
+  },
+  {
+    name: "Diff Checker",
+    description: "Compare two blocks of code or text with unified and split diff views.",
+    category: "DevOps",
+    icon: Split,
+    slug: "diff-checker",
   },
 
   // --- Design & Layout ---
