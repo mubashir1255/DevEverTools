@@ -166,6 +166,7 @@ const tools: Tool[] = [
     description: "Explore color scales, tweak contrast, and copy hex/rgb/hsl values.",
     category: "Design",
     icon: Palette,
+    slug: "color-palette",
   },
   {
     name: "Minifier",
