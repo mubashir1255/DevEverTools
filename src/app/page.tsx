@@ -13,6 +13,7 @@ import {
   Fingerprint,
   Hash,
   Calendar,
+  Globe,
   KeyRound,
   Layers,
   Link2,
@@ -190,6 +191,13 @@ const tools: Tool[] = [
     category: "DevOps",
     icon: Calendar,
     slug: "cron-parser",
+  },
+  {
+    name: "Meta Tag Generator",
+    description: "Generate SEO meta tags, Open Graph, Twitter cards, and Next.js metadata.",
+    category: "DevOps",
+    icon: Globe,
+    slug: "meta-tag-generator",
   },
 
   // --- Design & Layout ---
