@@ -21,6 +21,7 @@ import {
   Link2,
   Terminal,
   BookOpen,
+  Globe2,
   Container,
   Minimize2,
   Palette,
@@ -244,6 +245,13 @@ const tools: Tool[] = [
     category: "DevOps",
     icon: BookOpen,
     slug: "regex-cheatsheet",
+  },
+  {
+    name: "HTTP Reference",
+    description: "Searchable RFC HTTP status codes, security headers, and caching directives.",
+    category: "DevOps",
+    icon: Globe2,
+    slug: "http-reference",
   },
 
   // --- Design & Layout ---
