@@ -20,9 +20,6 @@ const PRESETS = [
   { label: "1st of every month", expr: "0 0 1 * *" },
 ];
 
-const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
 function parseFieldValues(field: string, min: number, max: number): number[] {
   const result = new Set<number>();
   const parts = field.split(",");
@@ -55,7 +52,7 @@ function parseFieldValues(field: string, min: number, max: number): number[] {
   return Array.from(result).sort((a, b) => a - b);
 }
 
-function explainField(field: string, unit: string, min: number, max: number): string {
+function explainField(field: string, unit: string): string {
   if (field === "*") return `every ${unit}`;
   if (field.startsWith("*/")) return `every ${field.slice(2)} ${unit}s`;
   if (field.includes("-")) return `${unit}s ${field}`;
@@ -136,11 +133,11 @@ export default function CronParserPage() {
   const explanation = useMemo(() => {
     if (!isValid) return "Invalid cron syntax. Standard cron expects exactly 5 space-separated fields.";
     const [m, h, dom, mon, dow] = parts;
-    const minDesc = explainField(m, "minute", 0, 59);
-    const hourDesc = explainField(h, "hour", 0, 23);
-    const domDesc = explainField(dom, "day of month", 1, 31);
-    const monDesc = explainField(mon, "month", 1, 12);
-    const dowDesc = explainField(dow, "day of week", 0, 6);
+    const minDesc = explainField(m, "minute");
+    const hourDesc = explainField(h, "hour");
+    const domDesc = explainField(dom, "day of month");
+    const monDesc = explainField(mon, "month");
+    const dowDesc = explainField(dow, "day of week");
 
     return `Runs ${minDesc}, on ${hourDesc}, on ${domDesc}, in ${monDesc}, and on ${dowDesc}.`;
   }, [parts, isValid]);

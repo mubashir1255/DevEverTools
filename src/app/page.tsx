@@ -97,6 +97,13 @@ const tools: Tool[] = [
     icon: Terminal,
     slug: "curl-converter",
   },
+  {
+    name: "Hex & Binary Inspector",
+    description: "Inspect raw text as hexdump (xxd), binary bits, and decimal byte arrays.",
+    category: "Converters",
+    icon: Binary,
+    slug: "hex-inspector",
+  },
 
   // --- Encoders & Generators ---
   {
