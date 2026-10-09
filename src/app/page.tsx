@@ -73,6 +73,13 @@ const tools: Tool[] = [
     slug: "markdown-preview",
   },
   {
+    name: "Schema Generator",
+    description: "Generate Zod runtime schemas and TypeScript interfaces directly from JSON.",
+    category: "Formatters",
+    icon: ShieldCheck,
+    slug: "schema-generator",
+  },
+  {
     name: "SVG to CSS / JSX",
     description: "Convert raw SVG markup into CSS backgrounds or React components.",
     category: "Converters",
