@@ -21,6 +21,7 @@ import {
   ShieldCheck,
   Split,
   Terminal,
+  Sliders,
   Type,
   Check,
   X,
@@ -73,9 +74,10 @@ const tools: Tool[] = [
   },
   {
     name: "CSS Unit Converter",
-    description: "Convert px to rem, em, vh, and clamp expressions.",
+    description: "Convert px, rem, em, %, and generate fluid clamp() typography.",
     category: "Converters",
-    icon: Split,
+    icon: Sliders,
+    slug: "css-unit-converter",
   },
 
   // --- Encoders & Generators ---
