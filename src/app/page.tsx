@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useRef, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Binary,
@@ -12,6 +12,7 @@ import {
   FileText,
   Fingerprint,
   Hash,
+  Calendar,
   KeyRound,
   Layers,
   Link2,
@@ -183,6 +184,13 @@ const tools: Tool[] = [
     icon: Split,
     slug: "diff-checker",
   },
+  {
+    name: "Cron Expression Parser",
+    description: "Translate cron expressions into human readable schedules with upcoming runs.",
+    category: "DevOps",
+    icon: Calendar,
+    slug: "cron-parser",
+  },
 
   // --- Design & Layout ---
   {
@@ -217,24 +225,6 @@ export default function Home() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("All");
   const [notice, setNotice] = useState("");
-  const searchInputRef = useRef<HTMLInputElement>(null);
-
-  // Global '/' hotkey to focus search
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (
-        e.key === "/" &&
-        document.activeElement?.tagName !== "INPUT" &&
-        document.activeElement?.tagName !== "TEXTAREA"
-      ) {
-        e.preventDefault();
-        searchInputRef.current?.focus();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
 
   const filteredTools = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -267,7 +257,7 @@ export default function Home() {
         {/* Header */}
         <header className="text-center mb-8 flex flex-col items-center w-full">
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white mb-2">
-            Dev Vault
+            DevEverTools
           </h1>
           <p className="text-sm text-zinc-400 mb-1">
             Free browser tools for developers and designers
@@ -276,24 +266,18 @@ export default function Home() {
             No signup. No tracking. Pure client-side execution.
           </p>
 
-          {/* Centered Search */}
+          {/* Clean Search Input */}
           <div className="relative w-full max-w-lg mb-5">
             <Search
               size={16}
               className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none"
             />
             <input
-              ref={searchInputRef}
               type="search"
-              placeholder={`Search ${tools.length} tools... (/ to focus)`}
+              placeholder="Search tools..."
               className="w-full bg-[#0a0b0e] border border-zinc-800 text-zinc-200 text-xs pl-10 pr-4 py-2.5 outline-none focus:border-blue-600 transition-colors"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Escape") {
-                  searchInputRef.current?.blur();
-                }
-              }}
             />
           </div>
 
@@ -390,7 +374,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="w-full text-center text-xs text-zinc-600 mt-12 pt-6 border-t border-zinc-900">
-        DevVault · Local client-side tools
+        DevEverTools · Local client-side tools
       </footer>
 
       {/* Toast Notification */}
