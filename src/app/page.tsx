@@ -66,6 +66,7 @@ const tools: Tool[] = [
     description: "Convert Unix epoch timestamps to UTC and human-readable dates.",
     category: "Converters",
     icon: Clock3,
+    slug: "timestamp-converter",
   },
   {
     name: "CSS Unit Converter",
