@@ -20,6 +20,7 @@ import {
   Layers,
   Link2,
   Terminal,
+  BookOpen,
   Container,
   Minimize2,
   Palette,
@@ -236,6 +237,13 @@ const tools: Tool[] = [
     category: "DevOps",
     icon: Container,
     slug: "dockerfile-builder",
+  },
+  {
+    name: "RegEx Cheat Sheet",
+    description: "Interactive regex syntax reference, character classes, anchors, and lookarounds.",
+    category: "DevOps",
+    icon: BookOpen,
+    slug: "regex-cheatsheet",
   },
 
   // --- Design & Layout ---
