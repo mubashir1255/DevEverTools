@@ -15,6 +15,7 @@ import {
   Calendar,
   Keyboard,
   Globe,
+  Image as ImageIcon,
   KeyRound,
   Layers,
   Link2,
@@ -104,6 +105,13 @@ const tools: Tool[] = [
     category: "Converters",
     icon: Binary,
     slug: "hex-inspector",
+  },
+  {
+    name: "Image to Data URL",
+    description: "Convert images to Base64 data URIs, HTML img tags, and CSS backgrounds.",
+    category: "Converters",
+    icon: ImageIcon,
+    slug: "image-data-url",
   },
 
   // --- Encoders & Generators ---
