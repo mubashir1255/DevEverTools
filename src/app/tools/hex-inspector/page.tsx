@@ -7,7 +7,6 @@ import {
   Check,
   Copy,
   Trash2,
-  Binary,
 } from "lucide-react";
 
 const SAMPLE_TEXT = `DevEverTools v1.0

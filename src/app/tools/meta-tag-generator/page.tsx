@@ -8,7 +8,6 @@ import {
   Copy,
   Globe,
   Share2,
-  FileCode,
 } from "lucide-react";
 
 export default function MetaTagGeneratorPage() {

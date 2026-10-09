@@ -13,6 +13,7 @@ import {
   Fingerprint,
   Hash,
   Calendar,
+  Keyboard,
   Globe,
   KeyRound,
   Layers,
@@ -205,6 +206,13 @@ const tools: Tool[] = [
     category: "DevOps",
     icon: Globe,
     slug: "meta-tag-generator",
+  },
+  {
+    name: "KeyCode Inspector",
+    description: "Inspect JavaScript keyboard events, key codes, and modifier combinations in real-time.",
+    category: "DevOps",
+    icon: Keyboard,
+    slug: "keycode-inspector",
   },
 
   // --- Design & Layout ---
