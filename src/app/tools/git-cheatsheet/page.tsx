@@ -6,7 +6,6 @@ import {
   ArrowLeft,
   Check,
   Copy,
-  GitBranch,
   Search,
 } from "lucide-react";
 

@@ -83,6 +83,13 @@ const tools: Tool[] = [
     slug: "schema-generator",
   },
   {
+    name: "Minifier",
+    description: "Strip whitespace and comments from JSON, CSS, and HTML strings.",
+    category: "Formatters",
+    icon: Minimize2,
+    slug: "minifier",
+  },
+  {
     name: "SVG to CSS / JSX",
     description: "Convert raw SVG markup into CSS backgrounds or React components.",
     category: "Converters",
@@ -271,12 +278,13 @@ const tools: Tool[] = [
     slug: "color-palette",
   },
   {
-    name: "Minifier",
-    description: "Strip whitespace and comments from JSON, CSS, and HTML strings.",
-    category: "Formatters",
-    icon: Minimize2,
-    slug: "minifier",
+    name: "Box Shadow Generator",
+    description: "Design multi-layer CSS box shadows, glow effects, and Tailwind elevation classes.",
+    category: "Design",
+    icon: Layers,
+    slug: "box-shadow-generator",
   },
+  
 ];
 
 const categories = [
