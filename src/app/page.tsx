@@ -95,9 +95,10 @@ const tools: Tool[] = [
   },
   {
     name: "HTML Entity Encoder",
-    description: "Convert special characters to their safe HTML entity representations.",
+    description: "Convert special characters to HTML entities and back safely.",
     category: "Encoders",
-    icon: Terminal,
+    icon: Code2,
+    slug: "html-entity-encoder",
   },
   {
     name: "UUID Generator",
