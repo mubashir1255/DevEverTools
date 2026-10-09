@@ -15,6 +15,7 @@ import {
   KeyRound,
   Layers,
   Link2,
+  Terminal,
   Minimize2,
   Palette,
   Regex,
@@ -86,6 +87,13 @@ const tools: Tool[] = [
     category: "Converters",
     icon: Sliders,
     slug: "css-unit-converter",
+  },
+  {
+    name: "cURL Converter",
+    description: "Convert cURL commands to JavaScript Fetch, Axios, or Python requests.",
+    category: "Converters",
+    icon: Terminal,
+    slug: "curl-converter",
   },
 
   // --- Encoders & Generators ---
