@@ -172,6 +172,7 @@ const tools: Tool[] = [
     description: "Strip whitespace and comments from JSON, CSS, and HTML strings.",
     category: "Formatters",
     icon: Minimize2,
+    slug: "minifier",
   },
 ];
 
