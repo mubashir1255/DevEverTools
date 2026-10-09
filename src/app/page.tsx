@@ -87,6 +87,7 @@ const tools: Tool[] = [
     description: "Safely encode or decode special characters in URI query strings.",
     category: "Encoders",
     icon: Link2,
+    slug: "url-encoder",
   },
   {
     name: "HTML Entity Encoder",
