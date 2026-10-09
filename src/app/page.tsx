@@ -62,6 +62,7 @@ const tools: Tool[] = [
     description: "Convert raw SVG markup into CSS backgrounds or React components.",
     category: "Converters",
     icon: Code2,
+    slug: "svg-converter",
   },
   {
     name: "Timestamp Converter",
