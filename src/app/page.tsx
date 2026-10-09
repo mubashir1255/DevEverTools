@@ -9,6 +9,7 @@ import {
   Code2,
   FileCode,
   FileJson,
+  TableIcon,
   FileText,
   Fingerprint,
   Hash,
@@ -82,6 +83,13 @@ const tools: Tool[] = [
     category: "Formatters",
     icon: ShieldCheck,
     slug: "schema-generator",
+  },
+  {
+    name: "Markdown Table Generator",
+    description: "Build clean, auto-padded markdown tables visually or convert CSV/TSV spreadsheets.",
+    category: "Formatters",
+    icon: TableIcon,
+    slug: "markdown-table",
   },
   {
     name: "Minifier",
