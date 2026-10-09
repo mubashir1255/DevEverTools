@@ -25,6 +25,7 @@ import {
   Type,
   Check,
   X,
+  QrCode,
 } from "lucide-react";
 
 type Tool = {
@@ -129,6 +130,13 @@ const tools: Tool[] = [
     category: "Generators",
     icon: Type,
     slug: "dummy-data-generator",
+  },
+  {
+    name: "QR Code Generator",
+    description: "Generate customizable QR codes with instant PNG and SVG vector export.",
+    category: "Generators",
+    icon: QrCode,
+    slug: "qr-generator",
   },
 
   // --- Security & Web Utilities ---
