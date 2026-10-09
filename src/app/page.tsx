@@ -12,6 +12,7 @@ import {
   FileText,
   Fingerprint,
   Hash,
+  Database,
   Calendar,
   Keyboard,
   Globe,
@@ -130,6 +131,13 @@ const tools: Tool[] = [
     category: "Converters",
     icon: ImageIcon,
     slug: "image-data-url",
+  },
+  {
+    name: "SQL to Prisma / TypeScript",
+    description: "Transpile SQL CREATE TABLE statements directly into Prisma models and TypeScript types.",
+    category: "Converters",
+    icon: Database,
+    slug: "sql-to-prisma",
   },
 
   // --- Encoders & Generators ---
