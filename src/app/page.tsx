@@ -129,6 +129,7 @@ const tools: Tool[] = [
     description: "Generate SHA-256, SHA-512, and MD5 hashes using Web Crypto.",
     category: "Security",
     icon: Hash,
+    slug: "hash-generator",
   },
   {
     name: "Chmod Permissions Calculator",
