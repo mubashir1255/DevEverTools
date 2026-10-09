@@ -55,6 +55,7 @@ const tools: Tool[] = [
     description: "Beautify, indent, and format SQL database queries.",
     category: "Formatters",
     icon: FileCode,
+    slug: "sql-formatter",
   },
   {
     name: "SVG to CSS / JSX",
