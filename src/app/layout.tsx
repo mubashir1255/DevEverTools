@@ -8,10 +8,10 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "DevVault - Your Everyday Developer Tools",
+  title: "DevEverTools - Your Everyday Developer Tools",
   description:
     "A collection of practical developer utilities. Format JSON, encode data, generate UUIDs, decode JWTs, convert timestamps, and explore colors.",
-  applicationName: "DevVault",
+  applicationName: "DevEverTools",
 };
 
 export default function RootLayout({

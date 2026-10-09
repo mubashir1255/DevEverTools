@@ -108,6 +108,7 @@ const tools: Tool[] = [
     description: "Create customizable, cryptographically strong random secrets.",
     category: "Generators",
     icon: KeyRound,
+    slug: "password-generator",
   },
   {
     name: "Dummy Data / Lorem Generator",
