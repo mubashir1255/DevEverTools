@@ -143,6 +143,7 @@ const tools: Tool[] = [
     description: "Test regular expressions with real-time match groups and flags.",
     category: "DevOps",
     icon: Regex,
+    slug: "regex-tester",
   },
 
   // --- Design & Layout ---
