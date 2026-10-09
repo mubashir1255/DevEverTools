@@ -6,7 +6,6 @@ import {
   ArrowLeft,
   Check,
   Copy,
-  Image as ImageIcon,
   Trash2,
   Upload,
 } from "lucide-react";

@@ -22,6 +22,7 @@ import {
   Terminal,
   BookOpen,
   Globe2,
+  GitBranch,
   Container,
   Minimize2,
   Palette,
@@ -252,6 +253,13 @@ const tools: Tool[] = [
     category: "DevOps",
     icon: Globe2,
     slug: "http-reference",
+  },
+  {
+    name: "Git Cheatsheet",
+    description: "Curated reference of high-frequency Git commands, undo recipes, and workflows.",
+    category: "DevOps",
+    icon: GitBranch,
+    slug: "git-cheatsheet",
   },
 
   // --- Design & Layout ---

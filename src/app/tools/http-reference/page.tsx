@@ -6,7 +6,6 @@ import {
   ArrowLeft,
   Check,
   Copy,
-  Globe2,
   Search,
 } from "lucide-react";
 
