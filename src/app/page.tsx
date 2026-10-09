@@ -121,6 +121,7 @@ const tools: Tool[] = [
     description: "Inspect claims, issued-at, and expiration in token payloads locally.",
     category: "Security",
     icon: ShieldCheck,
+    slug: "jwt-decoder",
   },
   {
     name: "Hash Generator",
