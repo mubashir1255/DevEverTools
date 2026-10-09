@@ -99,6 +99,7 @@ const tools: Tool[] = [
     description: "Generate cryptographically secure v4 and timestamped v7 UUIDs.",
     category: "Generators",
     icon: Fingerprint,
+    slug: "uuid-generator",
   },
   {
     name: "Password & Token Generator",
