@@ -468,6 +468,12 @@ export default function Home() {
               </button>
             </div>
           )}
+          {/* Subtle "mubashir1255" Watermark Background Overlay */}
+<div className="pointer-events-none fixed inset-0 z-0 flex select-none items-center justify-center overflow-hidden px-4 opacity-[0.05]">
+  <span className="font-mono text-[6vw] font-black tracking-tight text-white/20 whitespace-nowrap">
+    mubashir1255
+  </span>
+</div>
         </main>
       </div>
 
