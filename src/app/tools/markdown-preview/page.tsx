@@ -12,14 +12,14 @@ import {
   Code2,
 } from "lucide-react";
 
-const SAMPLE_MD = `# DevVault
+const SAMPLE_MD = `# DevEverTools
 
-DevVault is a **zero-telemetry**, client-side toolkit for engineers.
+DevEverTools is a **zero-telemetry**, client-side toolkit for engineers.
 
 ## Key Principles
-* Pure In-Browser Processing
-* Sharp Brutalist Aesthetics
-* High-Performance Static Delivery
+- Pure In-Browser Processing
+- Sharp Brutalist Aesthetics
+- High-Performance Static Delivery
 
 > "Simplicity and local-first execution eliminate needless network roundtrips."
 
@@ -33,52 +33,72 @@ Here is a [link to dashboard](/) and an inline \`crypto.randomUUID()\` example.
 `;
 
 function parseMarkdownToHtml(md: string): string {
-  let html = md
-    // Escape HTML raw brackets first
+  // 1. Extract fenced code blocks first so inner characters (*, _, #) are protected
+  const codeBlocks: string[] = [];
+  let html = md.replace(/```([a-zA-Z0-9_-]*)\n([\s\S]*?)```/g, (_match, _lang, code) => {
+    const escaped = code
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+    const placeholder = `__CODE_BLOCK_${codeBlocks.length}__`;
+    codeBlocks.push(
+      `<pre class="bg-black border border-zinc-800 p-3 my-3 overflow-x-auto text-xs font-mono text-zinc-300"><code>${escaped.trim()}</code></pre>`
+    );
+    return placeholder;
+  });
+
+  // 2. Escape HTML brackets in remaining markdown text
+  html = html
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
 
-  // Code blocks: ```code```
-  html = html.replace(/```([a-zA-Z0-9_-]*)\n([\s\S]*?)```/g, (_match, _lang, code) => {
-    return `<pre class="bg-black border border-zinc-800 p-3 my-3 overflow-x-auto text-xs font-mono text-zinc-300"><code>${code.trim()}</code></pre>`;
-  });
-
-  // Headers
+  // 3. Headers (# H1 to #### H4)
   html = html
     .replace(/^#### (.*$)/gim, '<h4 class="text-sm font-bold text-zinc-200 mt-4 mb-2">$1</h4>')
     .replace(/^### (.*$)/gim, '<h3 class="text-base font-bold text-zinc-100 mt-5 mb-2">$1</h3>')
     .replace(/^## (.*$)/gim, '<h2 class="text-lg font-bold text-white mt-6 mb-3 border-b border-zinc-800 pb-1">$1</h2>')
     .replace(/^# (.*$)/gim, '<h1 class="text-xl font-bold text-white mt-4 mb-4 border-b border-zinc-800 pb-2">$1</h1>');
 
-  // Blockquotes
+  // 4. Blockquotes (> quote)
   html = html.replace(
     /^\&gt;\s?(.*$)/gim,
     '<blockquote class="border-l-2 border-blue-500 pl-4 py-1 my-3 text-zinc-400 italic text-xs bg-zinc-900/30">$1</blockquote>'
   );
 
-  // Bold & Italic
+  // 5. Bold & Italic
   html = html
     .replace(/\*\*\*(.*?)\*\*\*/g, "<strong><em>$1</em></strong>")
     .replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-white">$1</strong>')
     .replace(/\*(.*?)\*/g, '<em class="italic text-zinc-300">$1</em>');
 
-  // Inline code: `code`
+  // 6. Inline code: `code`
   html = html.replace(
     /`([^`]+)`/g,
     '<code class="px-1.5 py-0.5 bg-zinc-900 border border-zinc-800 text-blue-400 font-mono text-[11px]">$1</code>'
   );
 
-  // Links: [text](url)
+  // 7. Links: [text](url)
   html = html.replace(
     /\[([^\]]+)\]\(([^)]+)\)/g,
     '<a href="$2" class="text-blue-400 underline underline-offset-2 hover:text-blue-300" target="_blank" rel="noopener noreferrer">$1</a>'
   );
 
-  // Unordered Lists
-  html = html.replace(/^\*\s(.*$)/gim, '<li class="ml-4 list-disc text-zinc-300 text-xs my-1">$1</li>');
+  // 8. Unordered Lists (supports both - and * and wraps in <ul>)
+  html = html.replace(/^[\*\-]\s+(.*$)/gim, '<li class="text-zinc-300 text-xs my-0.5">$1</li>');
+  html = html.replace(/((?:<li class="[^"]*">.*?<\/li>\n?)+)/g, '<ul class="list-disc list-inside my-2 ml-2 space-y-1">$&</ul>');
 
-  // Paragraphs (lines separated by blank lines)
+  // 9. Ordered Lists (supports 1. and wraps in <ol>)
+  html = html.replace(/^\d+\.\s+(.*$)/gim, '<li class="text-zinc-300 text-xs my-0.5">$1</li>');
+  html = html.replace(/((?:<li class="[^"]*">.*?<\/li>\n?)+)/g, (match) => {
+    if (match.includes("list-disc")) return match;
+    return `<ol class="list-decimal list-inside my-2 ml-2 space-y-1">${match}</ol>`;
+  });
+
+  // 10. Horizontal Rules
+  html = html.replace(/^---$/gim, '<hr class="border-zinc-800 my-4" />');
+
+  // 11. Paragraphs
   html = html
     .split(/\n\s*\n/)
     .map((block) => {
@@ -86,15 +106,22 @@ function parseMarkdownToHtml(md: string): string {
       if (!trimmed) return "";
       if (
         trimmed.startsWith("<h") ||
-        trimmed.startsWith("<pre") ||
+        trimmed.startsWith("__CODE_BLOCK_") ||
         trimmed.startsWith("<blockquote") ||
-        trimmed.startsWith("<li")
+        trimmed.startsWith("<ul") ||
+        trimmed.startsWith("<ol") ||
+        trimmed.startsWith("<hr")
       ) {
         return trimmed;
       }
       return `<p class="my-2 text-xs text-zinc-300 leading-relaxed">${trimmed.replace(/\n/g, "<br/>")}</p>`;
     })
     .join("\n");
+
+  // 12. Restore code blocks untouched
+  codeBlocks.forEach((block, idx) => {
+    html = html.replace(`__CODE_BLOCK_${idx}__`, block);
+  });
 
   return html;
 }
@@ -261,7 +288,7 @@ export default function MarkdownPreviewPage() {
 
       {/* Footer */}
       <footer className="w-full text-center text-xs text-zinc-600 mt-8 pt-4 border-t border-zinc-900">
-        DevVault · Markdown Preview & HTML Generator
+        DevEverTools · Markdown Preview & HTML Generator
       </footer>
     </div>
   );

@@ -8,68 +8,21 @@ import {
   Copy,
   Trash2,
   FileCode,
+  Sparkles,
   Minimize2,
 } from "lucide-react";
 
-const SAMPLE_SQL = `select u.id, u.username, u.email, count(o.id) as total_orders, sum(o.amount) as total_spent from users u left join orders o on u.id = o.user_id where u.is_active = true and o.status in ('completed', 'shipped') group by u.id, u.username, u.email having count(o.id) > 2 order by total_spent desc limit 50;`;
+const SAMPLE_SQL = `select u.id,u.email,count(o.id) as order_count,coalesce(sum(o.total_amount),0) as total_spent from users u left join orders o on u.id=o.user_id where u.status='active' and u.created_at>='2025-01-01' group by u.id,u.email having count(o.id)>5 order by total_spent desc limit 50;`;
 
-const SQL_KEYWORDS = [
-  "SELECT",
-  "FROM",
-  "WHERE",
-  "GROUP BY",
-  "HAVING",
-  "ORDER BY",
-  "LIMIT",
-  "OFFSET",
-  "LEFT JOIN",
-  "RIGHT JOIN",
-  "INNER JOIN",
-  "OUTER JOIN",
-  "CROSS JOIN",
-  "JOIN",
-  "ON",
-  "INSERT INTO",
-  "VALUES",
-  "UPDATE",
-  "SET",
-  "DELETE FROM",
-  "UNION ALL",
-  "UNION",
-  "CREATE TABLE",
-  "ALTER TABLE",
-  "DROP TABLE",
-  "AND",
-  "OR",
-  "IN",
-  "AS",
-  "NOT",
-  "NULL",
-  "IS",
-  "LIKE",
-  "EXISTS",
-  "DISTINCT",
-  "CASE",
-  "WHEN",
-  "THEN",
-  "ELSE",
-  "END",
-  "DESC",
-  "ASC",
-  "BETWEEN",
-];
-
-function formatSqlCode(
+function formatSql(
   sql: string,
-  uppercase: boolean,
-  indentStr: string
+  uppercase: boolean = true,
+  indentSpaces: number = 2
 ): string {
-  let cleaned = sql
-    .replace(/\s+/g, " ")
-    .replace(/\s*([,;()])\s*/g, "$1 ")
-    .trim();
+  if (!sql.trim()) return "";
 
-  // Keyword highlighting & line breaks for major clauses
+  const indent = " ".repeat(indentSpaces);
+
   const majorClauses = [
     "SELECT",
     "FROM",
@@ -79,97 +32,159 @@ function formatSqlCode(
     "ORDER BY",
     "LIMIT",
     "OFFSET",
+    "UNION ALL",
+    "UNION",
+    "VALUES",
+    "SET",
+    "INSERT INTO",
+    "UPDATE",
+    "DELETE FROM",
+  ];
+
+  const joinClauses = [
+    "LEFT OUTER JOIN",
+    "RIGHT OUTER JOIN",
+    "FULL OUTER JOIN",
     "LEFT JOIN",
     "RIGHT JOIN",
     "INNER JOIN",
-    "OUTER JOIN",
     "CROSS JOIN",
     "JOIN",
-    "INSERT INTO",
-    "VALUES",
-    "UPDATE",
-    "SET",
-    "DELETE FROM",
-    "UNION ALL",
-    "UNION",
   ];
 
-  // Regex replacement for major clauses to put on newline
-  majorClauses.forEach((kw) => {
-    const regex = new RegExp(`\\b${kw}\\b`, "gi");
-    cleaned = cleaned.replace(regex, (match) => `\n${match.toUpperCase()}`);
+  const secondaryKeywords = [
+    "AND",
+    "OR",
+    "ON",
+    "AS",
+    "IN",
+    "NOT IN",
+    "IS NULL",
+    "IS NOT NULL",
+    "BETWEEN",
+    "LIKE",
+    "ASC",
+    "DESC",
+    "CASE",
+    "WHEN",
+    "THEN",
+    "ELSE",
+    "END",
+    "DISTINCT",
+    "EXISTS",
+    "COALESCE",
+    "COUNT",
+    "SUM",
+    "AVG",
+    "MIN",
+    "MAX",
+  ];
+
+  let cleaned = sql
+    .replace(/\s+/g, " ")
+    .replace(/\s*([,;])\s*/g, "$1 ")
+    .replace(/\(\s+/g, "(")     .replace(/\s+\)/g, ")")
+    .trim();
+
+  // 1. Protect literal string constants from modification
+  const strings: string[] = [];
+  cleaned = cleaned.replace(/'(?:''|[^'])*'/g, (m) => {
+    strings.push(m);
+    return `__SQL_STR_${strings.length - 1}__`;
   });
 
-  const lines = cleaned.split("\n").filter((l) => l.trim().length > 0);
+  // 2. Adjust keyword casing across all known SQL keywords
+  const allKeywords = [...majorClauses, ...joinClauses, ...secondaryKeywords];
+  allKeywords.forEach((kw) => {
+    const regex = new RegExp(`\\b${kw.replace(/ /g, "\\s+")}\\b`, "gi");
+    cleaned = cleaned.replace(regex, uppercase ? kw.toUpperCase() : kw.toLowerCase());
+  });
+
+  // 3. Insert line breaks before major clauses
+  majorClauses.forEach((clause) => {
+    const target = uppercase ? clause.toUpperCase() : clause.toLowerCase();
+    const regex = new RegExp(`\\s*\\b(${target})\\b\\s*`, "gi");
+    cleaned = cleaned.replace(regex, `\n$1 `);
+  });
+
+  // 4. Insert line breaks before joins with indent
+  joinClauses.forEach((join) => {
+    const target = uppercase ? join.toUpperCase() : join.toLowerCase();
+    const regex = new RegExp(`\\s*\\b(${target})\\b\\s*`, "gi");
+    cleaned = cleaned.replace(regex, `\n${indent}$1 `);
+  });
+
+  // 5. Structure comma-separated SELECT columns
+  const lines = cleaned
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
   const formattedLines: string[] = [];
 
-  for (let line of lines) {
-    line = line.trim();
+  for (const line of lines) {
+    const isSelect = /^select\b/i.test(line);
 
-    // Uppercase all known SQL keywords
-    if (uppercase) {
-      SQL_KEYWORDS.forEach((kw) => {
-        const kwRegex = new RegExp(`\\b${kw}\\b`, "gi");
-        line = line.replace(kwRegex, (m) => m.toUpperCase());
+    if (isSelect) {
+      const selectKw = uppercase ? "SELECT" : "select";
+      const rest = line.replace(/^select\s+/i, "").trim();
+
+      const cols: string[] = [];
+      let depth = 0;
+      let cur = "";
+
+      for (let i = 0; i < rest.length; i++) {
+        const char = rest[i];
+        if (char === "(") depth++;
+        else if (char === ")") depth--;
+
+        if (char === "," && depth === 0) {
+          cols.push(cur.trim());
+          cur = "";
+        } else {
+          cur += char;
+        }
+      }
+      if (cur.trim()) cols.push(cur.trim());
+
+      formattedLines.push(selectKw);
+      cols.forEach((col, idx) => {
+        const comma = idx < cols.length - 1 ? "," : "";
+        formattedLines.push(`${indent}${col}${comma}`);
       });
-    } else {
-      SQL_KEYWORDS.forEach((kw) => {
-        const kwRegex = new RegExp(`\\b${kw}\\b`, "gi");
-        line = line.replace(kwRegex, (m) => m.toLowerCase());
-      });
-    }
-
-    // Format commas in SELECT clause for clean multi-line display
-    if (line.toUpperCase().startsWith("SELECT") && line.includes(",")) {
-      const parts = line.split(",");
-      const firstPart = parts[0];
-      const rest = parts.slice(1).map((p) => `${indentStr}${p.trim()}`);
-      formattedLines.push(firstPart + ",");
-      formattedLines.push(rest.join(",\n"));
-      continue;
-    }
-
-    // Indent sub-clauses like AND, OR, ON
-    if (/^(AND|OR|ON)\b/i.test(line)) {
-      formattedLines.push(`${indentStr}${line}`);
     } else {
       formattedLines.push(line);
     }
   }
 
-  return formattedLines.join("\n");
+  // 6. Restore original strings
+  let result = formattedLines.join("\n");
+  strings.forEach((str, idx) => {
+    result = result.replace(`__SQL_STR_${idx}__`, str);
+  });
+
+  return result.trim();
 }
 
-function minifySqlCode(sql: string): string {
+function minifySql(sql: string): string {
   return sql
     .replace(/\s+/g, " ")
-    .replace(/\s*([,;()])\s*/g, "$1")
+    .replace(/\s*([(),;=><])\s*/g, "$1")
     .trim();
 }
 
 export default function SqlFormatterPage() {
   const [input, setInput] = useState(SAMPLE_SQL);
   const [output, setOutput] = useState("");
-  const [uppercase, setUppercase] = useState(true);
-  const [indent, setIndent] = useState<number | string>(2);
+  const [indentOption, setIndentOption] = useState<number>(2);
+  const [uppercaseKw, setUppercaseKw] = useState<boolean>(true);
   const [copied, setCopied] = useState(false);
 
-  const handleFormat = (
-    raw = input,
-    isUpper = uppercase,
-    currentIndent = indent
-  ) => {
-    if (!raw.trim()) {
-      setOutput("");
-      return;
-    }
-    const indentStr = currentIndent === "tab" ? "\t" : " ".repeat(Number(currentIndent));
-    setOutput(formatSqlCode(raw, isUpper, indentStr));
+  const handleBeautify = () => {
+    setOutput(formatSql(input, uppercaseKw, indentOption));
   };
 
   const handleMinify = () => {
-    if (!input.trim()) return;
-    setOutput(minifySqlCode(input));
+    setOutput(minifySql(input));
   };
 
   const handleCopy = async () => {
@@ -211,46 +226,45 @@ export default function SqlFormatterPage() {
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              onClick={() => handleFormat()}
-              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium flex items-center gap-1.5 transition-colors"
+              onClick={handleBeautify}
+              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-mono flex items-center gap-1.5 transition-colors"
             >
-              <FileCode size={14} />
+              <Sparkles size={13} />
               <span>Beautify</span>
             </button>
             <button
               type="button"
               onClick={handleMinify}
-              className="px-3 py-1.5 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-200 text-xs flex items-center gap-1.5 transition-colors"
+              className="px-3 py-1.5 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-300 text-xs font-mono flex items-center gap-1.5 transition-colors"
             >
-              <Minimize2 size={14} />
+              <Minimize2 size={13} />
               <span>Minify</span>
             </button>
 
-            {/* Indent Selector */}
-            <div className="flex items-center gap-1 ml-2 text-xs text-zinc-400 font-mono">
-              <span className="text-[11px]">Indent:</span>
+            <div className="flex items-center gap-2 ml-2 pl-2 border-l border-zinc-800">
+              <span className="text-[11px] font-mono text-zinc-500">Indent:</span>
               <select
-                value={indent}
+                value={indentOption}
                 onChange={(e) => {
-                  setIndent(e.target.value);
-                  handleFormat(input, uppercase, e.target.value);
+                  const val = Number(e.target.value);
+                  setIndentOption(val);
+                  if (output) setOutput(formatSql(input, uppercaseKw, val));
                 }}
-                className="bg-black border border-zinc-800 text-zinc-300 text-xs px-2 py-1 outline-none"
+                className="bg-black border border-zinc-800 text-xs font-mono text-zinc-300 px-2 py-1 outline-none"
               >
                 <option value={2}>2 Spaces</option>
                 <option value={4}>4 Spaces</option>
-                <option value="tab">Tab</option>
               </select>
             </div>
 
-            {/* Uppercase Toggle */}
-            <label className="flex items-center gap-1.5 ml-2 text-xs text-zinc-400 cursor-pointer select-none">
+            <label className="flex items-center gap-2 text-xs font-mono text-zinc-400 cursor-pointer ml-2">
               <input
                 type="checkbox"
-                checked={uppercase}
+                checked={uppercaseKw}
                 onChange={(e) => {
-                  setUppercase(e.target.checked);
-                  handleFormat(input, e.target.checked, indent);
+                  const val = e.target.checked;
+                  setUppercaseKw(val);
+                  if (output) setOutput(formatSql(input, val, indentOption));
                 }}
                 className="accent-blue-600"
               />
@@ -263,7 +277,7 @@ export default function SqlFormatterPage() {
               type="button"
               onClick={() => {
                 setInput(SAMPLE_SQL);
-                handleFormat(SAMPLE_SQL);
+                setOutput("");
               }}
               className="px-2.5 py-1.5 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-300 text-xs transition-colors"
             >
@@ -273,20 +287,21 @@ export default function SqlFormatterPage() {
               type="button"
               onClick={handleClear}
               className="p-1.5 bg-zinc-900 border border-zinc-800 hover:bg-red-950/40 hover:border-red-800 hover:text-red-400 text-zinc-400 text-xs transition-colors"
-              title="Clear"
+              title="Clear all"
             >
               <Trash2 size={14} />
             </button>
           </div>
         </div>
 
-        {/* Dual Editor Panes */}
+        {/* Dual Editor & Preview Panes */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1">
           {/* Input Panel */}
           <div className="flex flex-col border border-zinc-800 bg-[#0a0b0e]">
             <div className="flex items-center justify-between border-b border-zinc-800 px-3 py-2 text-xs text-zinc-400 bg-black/40">
-              <span className="font-mono uppercase text-[11px] tracking-wider">
-                Raw SQL Query
+              <span className="font-mono uppercase text-[11px] tracking-wider flex items-center gap-1.5">
+                <FileCode size={13} className="text-blue-400" />
+                <span>Raw SQL Query</span>
               </span>
               <span className="text-[11px] font-mono text-zinc-600">
                 {input.length} characters
@@ -294,13 +309,10 @@ export default function SqlFormatterPage() {
             </div>
             <textarea
               value={input}
-              onChange={(e) => {
-                setInput(e.target.value);
-                handleFormat(e.target.value);
-              }}
-              placeholder="Paste raw SQL query here..."
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Paste SQL query here..."
               spellCheck={false}
-              className="w-full flex-1 bg-transparent p-4 text-xs font-mono text-zinc-200 resize-none outline-none min-h-[440px]"
+              className="w-full flex-1 bg-transparent p-4 text-xs font-mono text-zinc-200 resize-none outline-none min-h-[460px]"
             />
           </div>
 
@@ -334,9 +346,9 @@ export default function SqlFormatterPage() {
             <textarea
               readOnly
               value={output}
-              placeholder="Formatted SQL output will appear here..."
+              placeholder="Click 'Beautify' or 'Minify' to generate output..."
               spellCheck={false}
-              className="w-full flex-1 bg-transparent p-4 text-xs font-mono text-zinc-300 resize-none outline-none min-h-[440px]"
+              className="w-full flex-1 bg-transparent p-4 text-xs font-mono text-zinc-200 resize-none outline-none min-h-[460px]"
             />
           </div>
         </div>
@@ -344,7 +356,7 @@ export default function SqlFormatterPage() {
 
       {/* Footer */}
       <footer className="w-full text-center text-xs text-zinc-600 mt-8 pt-4 border-t border-zinc-900">
-        DevVault · SQL Formatter
+        DevEverTools · SQL Formatter & Beautifier
       </footer>
     </div>
   );

@@ -10,91 +10,144 @@ import {
   Upload,
 } from "lucide-react";
 
-// Minimal zero-dependency MD5 implementation
+// Standard RFC 1321 MD5 zero-dependency implementation
 function md5(input: string | Uint8Array): string {
   const bytes = typeof input === "string" ? new TextEncoder().encode(input) : input;
-  const k = [
-    0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee, 0xf57c0faf, 0x4787c62a, 0xa8304613, 0xfd469501,
-    0x698098d8, 0x8b44f7af, 0xffff5bb1, 0x895cd7be, 0x6b901122, 0xfd987193, 0xa679438e, 0x49b40821,
-    0xf61e2562, 0xc040b340, 0x265e5a51, 0xe9b6c7aa, 0xd62f105d, 0x02441453, 0xd8a1e681, 0xe7d3fbc8,
-    0x21e1cde6, 0xc33707d6, 0xf4d50d87, 0x455a14ed, 0xa9e3e905, 0xfcefa3f8, 0x676f02d9, 0x8d2a4c8a,
-    0xfffa3942, 0x8771f681, 0x6d9d6122, 0xfde5380c, 0xa4beea44, 0x4bdecfa9, 0xf6bb4b60, 0xbebfbc70,
-    0x289b7ec6, 0xeaa127fa, 0xd4ef3085, 0x04881d05, 0xd9d4d039, 0xe6db99e5, 0x1fa27cf8, 0xc4ac5665,
-    0xf4292244, 0x432aff97, 0xab9423a7, 0xfc93a039, 0x655b59c3, 0x8f0ccc92, 0xffeff47d, 0x85845dd1,
-    0x6fa87e4f, 0xfe2ce6e0, 0xa3014314, 0x4e0811a1, 0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391,
-  ];
-  const s = [
-    7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22,
-    5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20,
-    4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23,
-    6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21,
-  ];
+  const len = bytes.length;
 
-  const n = bytes.length;
-  const bitLen = n * 8;
-  const paddedLen = (((n + 8) >>> 6) + 1) * 64;
-  const padded = new Uint8Array(paddedLen);
-  padded.set(bytes);
-  padded[n] = 0x80;
+  // Pre-processing: calculate padded length to be congruent to 56 mod 64 (or 14 words mod 16)
+  const nWords = (((len + 8) >> 6) + 1) * 16;
+  const words = new Int32Array(nWords);
 
-  for (let i = 0; i < 8; i++) {
-    padded[paddedLen - 8 + i] = (bitLen >>> (i * 8)) & 0xff;
+  for (let i = 0; i < len; i++) {
+    words[i >> 2] |= (bytes[i] & 0xff) << ((i % 4) * 8);
   }
 
-  let [a0, b0, c0, d0] = [0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476];
+  // Append single 1 bit (0x80)
+  words[len >> 2] |= 0x80 << ((len % 4) * 8);
 
-  for (let offset = 0; offset < paddedLen; offset += 64) {
-    const chunk = new Uint32Array(16);
-    for (let i = 0; i < 16; i++) {
-      chunk[i] =
-        padded[offset + i * 4] |
-        (padded[offset + i * 4 + 1] << 8) |
-        (padded[offset + i * 4 + 2] << 16) |
-        (padded[offset + i * 4 + 3] << 24);
-    }
+  // Append length in bits as 64-bit integer (little endian)
+  const bitLen = len * 8;
+  words[nWords - 2] = bitLen & 0xffffffff;
+  words[nWords - 1] = Math.floor(bitLen / 0x100000000);
 
-    let [a, b, c, d] = [a0, b0, c0, d0];
+  const rotateLeft = (val: number, bits: number) => (val << bits) | (val >>> (32 - bits));
 
-    for (let i = 0; i < 64; i++) {
-      let f = 0;
-      let g = 0;
-      if (i < 16) {
-        f = (b & c) | (~b & d);
-        g = i;
-      } else if (i < 32) {
-        f = (d & b) | (~d & c);
-        g = (5 * i + 1) % 16;
-      } else if (i < 48) {
-        f = b ^ c ^ d;
-        g = (3 * i + 5) % 16;
-      } else {
-        f = c ^ (b | ~d);
-        g = (7 * i) % 16;
-      }
+  const cmn = (q: number, a: number, b: number, x: number, s: number, t: number) => {
+    return (rotateLeft((a + q + x + t) | 0, s) + b) | 0;
+  };
 
-      const temp = d;
-      d = c;
-      c = b;
-      const sum = (a + f + k[i] + chunk[g]) | 0;
-      b = (b + ((sum << s[i]) | (sum >>> (32 - s[i])))) | 0;
-      a = temp;
-    }
+  const ff = (a: number, b: number, c: number, d: number, x: number, s: number, t: number) =>
+    cmn((b & c) | (~b & d), a, b, x, s, t);
 
-    a0 = (a0 + a) | 0;
-    b0 = (b0 + b) | 0;
-    c0 = (c0 + c) | 0;
-    d0 = (d0 + d) | 0;
+  const gg = (a: number, b: number, c: number, d: number, x: number, s: number, t: number) =>
+    cmn((b & d) | (c & ~d), a, b, x, s, t);
+
+  const hh = (a: number, b: number, c: number, d: number, x: number, s: number, t: number) =>
+    cmn(b ^ c ^ d, a, b, x, s, t);
+
+  const ii = (a: number, b: number, c: number, d: number, x: number, s: number, t: number) =>
+    cmn(c ^ (b | ~d), a, b, x, s, t);
+
+  let a = 0x67452301;
+  let b = 0xefcdab89;
+  let c = 0x98badcfe;
+  let d = 0x10325476;
+
+  for (let i = 0; i < nWords; i += 16) {
+    const oldA = a;
+    const oldB = b;
+    const oldC = c;
+    const oldD = d;
+
+    // Round 1
+    a = ff(a, b, c, d, words[i + 0], 7, 0xd76aa478);
+    d = ff(d, a, b, c, words[i + 1], 12, 0xe8c7b756);
+    c = ff(c, d, a, b, words[i + 2], 17, 0x242070db);
+    b = ff(b, c, d, a, words[i + 3], 22, 0xc1bdceee);
+    a = ff(a, b, c, d, words[i + 4], 7, 0xf57c0faf);
+    d = ff(d, a, b, c, words[i + 5], 12, 0x4787c62a);
+    c = ff(c, d, a, b, words[i + 6], 17, 0xa8304613);
+    b = ff(b, c, d, a, words[i + 7], 22, 0xfd469501);
+    a = ff(a, b, c, d, words[i + 8], 7, 0x698098d8);
+    d = ff(d, a, b, c, words[i + 9], 12, 0x8b44f7af);
+    c = ff(c, d, a, b, words[i + 10], 17, 0xffff5bb1);
+    b = ff(b, c, d, a, words[i + 11], 22, 0x895cd7be);
+    a = ff(a, b, c, d, words[i + 12], 7, 0x6b901122);
+    d = ff(d, a, b, c, words[i + 13], 12, 0xfd987193);
+    c = ff(c, d, a, b, words[i + 14], 17, 0xa679438e);
+    b = ff(b, c, d, a, words[i + 15], 22, 0x49b40821);
+
+    // Round 2
+    a = gg(a, b, c, d, words[i + 1], 5, 0xf61e2562);
+    d = gg(d, a, b, c, words[i + 6], 9, 0xc040b340);
+    c = gg(c, d, a, b, words[i + 11], 14, 0x265e5a51);
+    b = gg(b, c, d, a, words[i + 0], 20, 0xe9b6c7aa);
+    a = gg(a, b, c, d, words[i + 5], 5, 0xd62f105d);
+    d = gg(d, a, b, c, words[i + 10], 9, 0x02441453);
+    c = gg(c, d, a, b, words[i + 15], 14, 0xd8a1e681);
+    b = gg(b, c, d, a, words[i + 4], 20, 0xe7d3fbc8);
+    a = gg(a, b, c, d, words[i + 9], 5, 0x21e1cde6);
+    d = gg(d, a, b, c, words[i + 14], 9, 0xc33707d6);
+    c = gg(c, d, a, b, words[i + 3], 14, 0xf4d50d87);
+    b = gg(b, c, d, a, words[i + 8], 20, 0x455a14ed);
+    a = gg(a, b, c, d, words[i + 13], 5, 0xa9e3e905);
+    d = gg(d, a, b, c, words[i + 2], 9, 0xfcefa3f8);
+    c = gg(c, d, a, b, words[i + 7], 14, 0x676f02d9);
+    b = gg(b, c, d, a, words[i + 12], 20, 0x8d2a4c8a);
+
+    // Round 3
+    a = hh(a, b, c, d, words[i + 5], 4, 0xfffa3942);
+    d = hh(d, a, b, c, words[i + 8], 11, 0x8771f681);
+    c = hh(c, d, a, b, words[i + 11], 16, 0x6d9d6122);
+    b = hh(b, c, d, a, words[i + 14], 23, 0xfde5380c);
+    a = hh(a, b, c, d, words[i + 1], 4, 0xa4beea44);
+    d = hh(d, a, b, c, words[i + 4], 11, 0x4bdecfa9);
+    c = hh(c, d, a, b, words[i + 7], 16, 0xf6bb4b60);
+    b = hh(b, c, d, a, words[i + 10], 23, 0xbebfbc70);
+    a = hh(a, b, c, d, words[i + 13], 4, 0x289b7ec6);
+    d = hh(d, a, b, c, words[i + 0], 11, 0xeaa127fa);
+    c = hh(c, d, a, b, words[i + 3], 16, 0xd4ef3085);
+    b = hh(b, c, d, a, words[i + 6], 23, 0x04881d05);
+    a = hh(a, b, c, d, words[i + 9], 4, 0xd9d4d039);
+    d = hh(d, a, b, c, words[i + 12], 11, 0xe6db99e5);
+    c = hh(c, d, a, b, words[i + 15], 16, 0x1fa27cf8);
+    b = hh(b, c, d, a, words[i + 2], 23, 0xc4ac5665);
+
+    // Round 4
+    a = ii(a, b, c, d, words[i + 0], 6, 0xf4292244);
+    d = ii(d, a, b, c, words[i + 7], 10, 0x432aff97);
+    c = ii(c, d, a, b, words[i + 14], 15, 0xab9423a7);
+    b = ii(b, c, d, a, words[i + 5], 21, 0xfc93a039);
+    a = ii(a, b, c, d, words[i + 12], 6, 0x655b59c3);
+    d = ii(d, a, b, c, words[i + 3], 10, 0x8f0ccc92);
+    c = ii(c, d, a, b, words[i + 10], 15, 0xffeff47d);
+    b = ii(b, c, d, a, words[i + 1], 21, 0x85845dd1);
+    a = ii(a, b, c, d, words[i + 8], 6, 0x6fa87e4f);
+    d = ii(d, a, b, c, words[i + 15], 10, 0xfe2ce6e0);
+    c = ii(c, d, a, b, words[i + 6], 15, 0xa3014314);
+    b = ii(b, c, d, a, words[i + 13], 21, 0x4e0811a1);
+    a = ii(a, b, c, d, words[i + 4], 6, 0xf7537e82);
+    d = ii(d, a, b, c, words[i + 11], 10, 0xbd3af235);
+    c = ii(c, d, a, b, words[i + 2], 15, 0x2ad7d2bb);
+    b = ii(b, c, d, a, words[i + 9], 21, 0xeb86d391);
+
+    a = (a + oldA) | 0;
+    b = (b + oldB) | 0;
+    c = (c + oldC) | 0;
+    d = (d + oldD) | 0;
   }
 
-  const out = new Uint8Array(16);
+  const hexVals = [a, b, c, d];
+  let result = "";
   for (let i = 0; i < 4; i++) {
-    out[i] = (a0 >>> (i * 8)) & 0xff;
-    out[4 + i] = (b0 >>> (i * 8)) & 0xff;
-    out[8 + i] = (c0 >>> (i * 8)) & 0xff;
-    out[12 + i] = (d0 >>> (i * 8)) & 0xff;
+    for (let j = 0; j < 4; j++) {
+      const byte = (hexVals[i] >>> (j * 8)) & 0xff;
+      result += byte.toString(16).padStart(2, "0");
+    }
   }
 
-  return Array.from(out, (b) => b.toString(16).padStart(2, "0")).join("");
+  return result;
 }
 
 async function subtleHash(algo: string, data: Uint8Array): Promise<string> {
