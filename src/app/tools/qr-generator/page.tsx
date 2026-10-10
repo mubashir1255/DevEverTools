@@ -1,130 +1,119 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import Link from "next/link";
+import QRCode from "qrcode";
 import {
   ArrowLeft,
   Check,
   Copy,
   Download,
   QrCode,
+  RefreshCw,
   Sliders,
 } from "lucide-react";
 
-// Self-contained lightweight Byte-mode QR matrix generator for URLs & strings
-function generateQrMatrix(text: string): boolean[][] {
-  const length = Math.max(21, Math.min(37, 21 + Math.ceil(text.length / 8) * 4));
-  const matrix: boolean[][] = Array(length)
-    .fill(false)
-    .map(() => Array(length).fill(false));
+export default function QrGeneratorPage() {
+  const [text, setText] = useState("https://github.com/mubashir1255/DevEverTools");
+  const [size, setSize] = useState(280);
+  const [fgColor, setFgColor] = useState("#000000"); // Standard dark foreground
+  const [bgColor, setBgColor] = useState("#ffffff"); // Standard light background
+  const [errorLevel, setErrorLevel] = useState<"L" | "M" | "Q" | "H">("M");
+  const [copied, setCopied] = useState(false);
 
-  const addFinderPattern = (row: number, col: number) => {
-    for (let r = -1; r <= 7; r++) {
-      for (let c = -1; c <= 7; c++) {
-        const nr = row + r;
-        const nc = col + c;
-        if (nr >= 0 && nr < length && nc >= 0 && nc < length) {
-          const isBorder = r === 0 || r === 6 || c === 0 || c === 6;
-          const isInner = r >= 2 && r <= 4 && c >= 2 && c <= 4;
-          matrix[nr][nc] = isBorder || isInner;
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Synchronous pure QR calculation (No async setState cascading warnings)
+  const { qrData, error } = useMemo(() => {
+    if (!text.trim()) return { qrData: null, error: null };
+    try {
+      const code = QRCode.create(text.trim(), {
+        errorCorrectionLevel: errorLevel,
+      });
+      return { qrData: code, error: null };
+    } catch (err: unknown) {
+      return {
+        qrData: null,
+        error: err instanceof Error ? err.message : "Failed to generate QR code.",
+      };
+    }
+  }, [text, errorLevel]);
+
+  // Synchronous SVG markup calculation
+  const svgMarkup = useMemo(() => {
+    if (!qrData) return "";
+    const moduleCount = qrData.modules.size;
+    const margin = 4; // ISO quiet zone
+    const totalSize = moduleCount + margin * 2;
+    let path = "";
+
+    for (let r = 0; r < moduleCount; r++) {
+      for (let c = 0; c < moduleCount; c++) {
+        if (qrData.modules.get(r, c)) {
+          path += `M${c + margin},${r + margin}h1v1h-1z `;
         }
       }
     }
-  };
 
-  addFinderPattern(0, 0);
-  addFinderPattern(0, length - 7);
-  addFinderPattern(length - 7, 0);
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${totalSize} ${totalSize}" width="${size}" height="${size}"><rect width="100%" height="100%" fill="${bgColor}"/><path d="${path}" fill="${fgColor}"/></svg>`;
+  }, [qrData, size, fgColor, bgColor]);
 
-  // Timing patterns
-  for (let i = 8; i < length - 8; i++) {
-    matrix[6][i] = i % 2 === 0;
-    matrix[i][6] = i % 2 === 0;
-  }
-
-  // Deterministic byte data fill
-  let bitIndex = 0;
-  const bytes = new TextEncoder().encode(text);
-  for (let r = 0; r < length; r++) {
-    for (let c = 0; c < length; c++) {
-      const inFinder =
-        (r < 8 && c < 8) ||
-        (r < 8 && c >= length - 8) ||
-        (r >= length - 8 && c < 8);
-      const inTiming = r === 6 || c === 6;
-
-      if (!inFinder && !inTiming) {
-        const byteVal = bytes.length > 0 ? bytes[bitIndex % bytes.length] : 0;
-        const bit = ((byteVal >> (bitIndex % 8)) & 1) === 1;
-        matrix[r][c] = (bit ? 1 : 0) ^ ((r + c) % 2 === 0 ? 1 : 0) ? true : false;
-        bitIndex++;
-      }
-    }
-  }
-
-  return matrix;
-}
-
-export default function QrGeneratorPage() {
-  const [text, setText] = useState("https://devvault.local");
-  const [fgColor, setFgColor] = useState("#2563eb");
-  const [bgColor, setBgColor] = useState("#000000");
-  const [pixelSize, setPixelSize] = useState(8);
-  const [copied, setCopied] = useState(false);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  const matrix = generateQrMatrix(text || " ");
-  const qrDimension = matrix.length * pixelSize;
-
+  // Paint to canvas whenever the matrix or styles change
   useEffect(() => {
+    if (!qrData || !canvasRef.current) return;
     const canvas = canvasRef.current;
-    if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    const moduleCount = qrData.modules.size;
+    const margin = 4;
+    const totalModules = moduleCount + margin * 2;
+    const cellSize = Math.floor(size / totalModules) || 1;
+    const actualCanvasSize = cellSize * totalModules;
+
+    canvas.width = actualCanvasSize;
+    canvas.height = actualCanvasSize;
+
     ctx.fillStyle = bgColor;
-    ctx.fillRect(0, 0, qrDimension, qrDimension);
+    ctx.fillRect(0, 0, actualCanvasSize, actualCanvasSize);
 
     ctx.fillStyle = fgColor;
-    matrix.forEach((row, r) => {
-      row.forEach((cell, c) => {
-        if (cell) {
-          ctx.fillRect(c * pixelSize, r * pixelSize, pixelSize, pixelSize);
-        }
-      });
-    });
-  }, [matrix, fgColor, bgColor, pixelSize, qrDimension]);
-
-  const generateSvgString = (): string => {
-    const rects: string[] = [];
-    matrix.forEach((row, r) => {
-      row.forEach((cell, c) => {
-        if (cell) {
-          rects.push(
-            `<rect x="${c * pixelSize}" y="${r * pixelSize}" width="${pixelSize}" height="${pixelSize}" fill="${fgColor}"/>`
+    for (let r = 0; r < moduleCount; r++) {
+      for (let c = 0; c < moduleCount; c++) {
+        if (qrData.modules.get(r, c)) {
+          ctx.fillRect(
+            (c + margin) * cellSize,
+            (r + margin) * cellSize,
+            cellSize,
+            cellSize
           );
         }
-      });
-    });
-
-    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${qrDimension} ${qrDimension}" width="${qrDimension}" height="${qrDimension}">
-  <rect width="100%" height="100%" fill="${bgColor}"/>
-  ${rects.join("\n  ")}
-</svg>`;
-  };
-
+      }
+    }
+  }, [qrData, size, fgColor, bgColor]);
   const handleDownloadPng = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const url = canvas.toDataURL("image/png");
+    if (!canvasRef.current) return;
+    const url = canvasRef.current.toDataURL("image/png");
     const a = document.createElement("a");
     a.href = url;
-    a.download = "devvault-qr.png";
+    a.download = `qrcode-${Date.now()}.png`;
     a.click();
   };
 
+  const handleDownloadSvg = () => {
+    if (!svgMarkup) return;
+    const blob = new Blob([svgMarkup], { type: "image/svg+xml" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `qrcode-${Date.now()}.svg`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleCopySvg = async () => {
-    await navigator.clipboard.writeText(generateSvgString());
+    if (!svgMarkup) return;
+    await navigator.clipboard.writeText(svgMarkup);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
@@ -143,128 +132,216 @@ export default function QrGeneratorPage() {
               <span>Back to Vault</span>
             </Link>
             <h1 className="text-sm font-bold text-white tracking-wide uppercase">
-              QR Code Generator & Vector Exporter
+              QR Code Generator
             </h1>
           </div>
           <span className="text-[11px] text-zinc-500 font-mono">
-            Client-Side Canvas / SVG
+            High Reliability Engine
           </span>
         </header>
 
-        {/* Dual Column Workspace */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1">
-          {/* Settings & Text Input */}
-          <div className="flex flex-col border border-zinc-800 bg-[#0a0b0e] p-5">
-            <span className="text-xs font-mono uppercase text-zinc-300 font-semibold tracking-wider mb-3">
-              Payload String / URL
-            </span>
-
-            <textarea
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="Enter URL, plain text, or network payload..."
-              spellCheck={false}
-              className="w-full bg-black border border-zinc-800 p-3 text-xs font-mono text-zinc-200 outline-none focus:border-blue-600 resize-none h-32 mb-5"
-            />
-
-            {/* Visual Customization */}
-            <div className="pt-4 border-t border-zinc-900 space-y-4 font-mono text-xs">
-              <div className="flex items-center gap-2 text-zinc-400 uppercase text-[11px]">
-                <Sliders size={13} className="text-blue-400" />
-                <span>Customization</span>
+        {/* Content Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 mb-6">
+          {/* Controls & Text Input */}
+          <div className="border border-zinc-800 bg-[#0a0b0e] p-5 flex flex-col justify-between space-y-5 font-mono text-xs">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between text-zinc-400 uppercase text-[11px]">
+                <span className="flex items-center gap-1.5 font-bold">
+                  <QrCode size={13} className="text-blue-400" />
+                  <span>Payload Content</span>
+                </span>
+                <span className="text-zinc-600">{text.length} chars</span>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <span className="text-[10px] text-zinc-500 block mb-1">Foreground Color</span>
-                  <div className="flex items-center gap-2 bg-black border border-zinc-800 p-1.5">
-                    <input
-                      type="color"
-                      value={fgColor}
-                      onChange={(e) => setFgColor(e.target.value)}
-                      className="w-6 h-6 border-0 bg-transparent cursor-pointer"
-                    />
-                    <span className="text-zinc-200 text-xs uppercase">{fgColor}</span>
+              <textarea
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder="Enter URL, Wi-Fi configuration, or text..."
+                rows={4}
+                className="w-full bg-black border border-zinc-800 p-3 text-xs font-mono text-zinc-200 outline-none focus:border-blue-600 resize-none"
+              />
+
+              {error && (
+                <div className="p-3 bg-red-950/20 border border-red-800 text-red-400 text-xs">
+                  {error}
+                </div>
+              )}
+
+              {/* Formatting & Colors */}
+              <div className="border-t border-zinc-900 pt-4 space-y-4">
+                <div className="flex items-center gap-1.5 text-zinc-400 uppercase text-[11px] font-semibold">
+                  <Sliders size={13} className="text-blue-400" />
+                  <span>Options</span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <span className="text-[10px] text-zinc-500 uppercase block mb-1">
+                      Foreground (Dark)
+                    </span>
+                    <div className="flex items-center gap-2 bg-black border border-zinc-800 p-1.5">
+                      <input
+                        type="color"
+                        value={fgColor}
+                        onChange={(e) => setFgColor(e.target.value)}
+                        className="w-5 h-5 border-0 bg-transparent cursor-pointer"
+                      />
+                      <span className="text-[11px] text-zinc-300 uppercase">
+                        {fgColor}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <span className="text-[10px] text-zinc-500 uppercase block mb-1">
+                      Background (Light)
+                    </span>
+                    <div className="flex items-center gap-2 bg-black border border-zinc-800 p-1.5">
+                      <input
+                        type="color"
+                        value={bgColor}
+                        onChange={(e) => setBgColor(e.target.value)}
+                        className="w-5 h-5 border-0 bg-transparent cursor-pointer"
+                      />
+                      <span className="text-[11px] text-zinc-300 uppercase">
+                        {bgColor}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
-                <div>
-                  <span className="text-[10px] text-zinc-500 block mb-1">Background Color</span>
-                  <div className="flex items-center gap-2 bg-black border border-zinc-800 p-1.5">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <span className="text-[10px] text-zinc-500 uppercase block mb-1">
+                      Error Correction
+                    </span>
+                    <div className="grid grid-cols-4 gap-1">
+                      {(["L", "M", "Q", "H"] as const).map((lvl) => (
+                        <button
+                          key={lvl}
+                          type="button"
+                          onClick={() => setErrorLevel(lvl)}
+                          className={`py-1 text-center border text-[11px] transition-colors ${
+                            errorLevel === lvl
+                              ? "bg-blue-600 border-blue-600 text-white font-bold"
+                              : "bg-black border-zinc-800 text-zinc-400 hover:text-white"
+                          }`}
+                        >
+                          {lvl}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between text-[10px] text-zinc-400 mb-1">
+                      <span>Size</span>
+                      <span>{size}px</span>
+                    </div>
                     <input
-                      type="color"
-                      value={bgColor}
-                      onChange={(e) => setBgColor(e.target.value)}
-                      className="w-6 h-6 border-0 bg-transparent cursor-pointer"
+                      type="range"
+                      min={180}
+                      max={500}
+                      step={20}
+                      value={size}
+                      onChange={(e) => setSize(Number(e.target.value))}
+                      className="w-full accent-blue-600 cursor-pointer mt-1"
                     />
-                    <span className="text-zinc-200 text-xs uppercase">{bgColor}</span>
                   </div>
                 </div>
               </div>
+            </div>
 
-              <div>
-                <div className="flex justify-between text-[10px] text-zinc-500 mb-1">
-                  <span>Scale / Pixel Size</span>
-                  <span>{pixelSize}px ({qrDimension}x{qrDimension})</span>
-                </div>
-                <input
-                  type="range"
-                  min={4}
-                  max={14}
-                  value={pixelSize}
-                  onChange={(e) => setPixelSize(Number(e.target.value))}
-                  className="w-full accent-blue-600 cursor-pointer"
-                />
-              </div>
+            {/* Quick Presets */}
+            <div className="pt-3 border-t border-zinc-900 flex flex-wrap gap-1.5">
+              <span className="text-[10px] text-zinc-600 uppercase mr-1 self-center">
+                Presets:
+              </span>
+              {[
+                { label: "Standard (Black/White)", fg: "#000000", bg: "#ffffff" },
+                { label: "Dark High-Contrast", fg: "#0f172a", bg: "#f8fafc" },
+                { label: "Dev Vault Blue", fg: "#1e3a8a", bg: "#f0f9ff" },
+              ].map((p) => (
+                <button
+                  key={p.label}
+                  type="button"
+                  onClick={() => {
+                    setFgColor(p.fg);
+                    setBgColor(p.bg);
+                  }}
+                  className="px-2 py-0.5 border border-zinc-800 bg-black text-zinc-400 hover:text-white text-[10px] transition-colors"
+                >
+                  {p.label}
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Render Preview & Actions */}
-          <div className="flex flex-col border border-zinc-800 bg-[#0a0b0e] p-5 justify-between items-center">
-            <div className="w-full flex items-center justify-between border-b border-zinc-800 pb-3 mb-4">
-              <span className="text-xs font-mono uppercase text-zinc-400 tracking-wider flex items-center gap-2">
-                <QrCode size={14} className="text-blue-400" />
-                <span>Rendered Matrix</span>
-              </span>
-              <span className="text-[11px] font-mono text-zinc-600">
-                {qrDimension}px
-              </span>
+          {/* Live Preview Canvas & Export Actions */}
+          <div className="border border-zinc-800 bg-[#0a0b0e] p-6 flex flex-col justify-between items-center text-center">
+            <div className="w-full flex items-center justify-between border-b border-zinc-800 pb-3 text-xs font-mono text-zinc-400">
+              <span className="uppercase text-[11px]">Instant Camera Scan Target</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setFgColor("#000000");
+                  setBgColor("#ffffff");
+                  setErrorLevel("M");
+                }}
+                className="text-zinc-500 hover:text-white flex items-center gap-1 text-[11px]"
+                title="Reset defaults"
+              >
+                <RefreshCw size={11} />
+                <span>Reset</span>
+              </button>
             </div>
 
-            {/* Canvas Box */}
-            <div className="p-4 bg-black border border-zinc-800 flex items-center justify-center max-w-full overflow-hidden">
+            {/* The QR Target Box */}
+            <div className="my-auto p-4 bg-white/5 border border-zinc-800 flex items-center justify-center rounded">
               <canvas
                 ref={canvasRef}
-                width={qrDimension}
-                height={qrDimension}
-                className="max-w-full h-auto border border-zinc-900"
+                style={{ width: "240px", height: "240px" }}
+                className="rounded-sm shadow-2xl"
               />
             </div>
 
-            {/* Export Toolbar */}
-            <div className="w-full flex items-center gap-3 mt-6 pt-4 border-t border-zinc-900">
+            {/* Export Buttons */}
+            <div className="w-full grid grid-cols-3 gap-2 font-mono text-xs pt-4 border-t border-zinc-900">
               <button
                 type="button"
                 onClick={handleDownloadPng}
-                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white font-mono text-xs font-medium transition-colors"
+                disabled={!text.trim()}
+                className="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center gap-1.5 transition-colors disabled:opacity-40"
               >
                 <Download size={13} />
-                <span>Download PNG</span>
+                <span>PNG</span>
               </button>
+
+              <button
+                type="button"
+                onClick={handleDownloadSvg}
+                disabled={!text.trim() || !svgMarkup}
+                className="px-3 py-2 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-200 flex items-center justify-center gap-1.5 transition-colors disabled:opacity-40"
+              >
+                <Download size={13} />
+                <span>SVG</span>
+              </button>
+
               <button
                 type="button"
                 onClick={handleCopySvg}
-                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-200 font-mono text-xs transition-colors"
+                disabled={!text.trim() || !svgMarkup}
+                className="px-3 py-2 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-200 flex items-center justify-center gap-1.5 transition-colors disabled:opacity-40"
               >
                 {copied ? (
                   <>
                     <Check size={13} className="text-emerald-400" />
-                    <span className="text-emerald-400">Copied SVG</span>
+                    <span className="text-emerald-400">Copied</span>
                   </>
                 ) : (
                   <>
                     <Copy size={13} />
-                    <span>Copy Vector SVG</span>
+                    <span>Copy SVG</span>
                   </>
                 )}
               </button>
@@ -275,7 +352,7 @@ export default function QrGeneratorPage() {
 
       {/* Footer */}
       <footer className="w-full text-center text-xs text-zinc-600 mt-8 pt-4 border-t border-zinc-900">
-        DevVault · QR Code Generator
+        DevEverTools · QR Code Generator
       </footer>
     </div>
   );
